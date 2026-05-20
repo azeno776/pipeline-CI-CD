@@ -47,7 +47,7 @@ jobs:
           from huggingface_hub import HfApi
 
           token = os.environ["HF_TOKEN"]
-          repo_id = "azeno776/mon-modele"
+          repo_id = "azeno/mon-modele"
 
           api = HfApi()
 
