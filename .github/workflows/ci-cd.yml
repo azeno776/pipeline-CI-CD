@@ -51,15 +51,16 @@ jobs:
 
           api = HfApi()
 
-          api.create_repo(repo_id, token=token, exist_ok=True)
-
-          for filename in ["linear_model.pkl"]:
+          # Upload des fichiers du modèle
+          for filename in ["linear_model.pkl", "linear_model.txt"]:
               api.upload_file(
                   path_or_fileobj=filename,
                   path_in_repo=filename,
                   repo_id=repo_id,
                   token=token,
               )
+
+              print(f"Uploaded {filename}")
 
           print(f"Model uploaded to https://huggingface.co/{repo_id}")
           EOF
