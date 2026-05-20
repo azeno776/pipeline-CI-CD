@@ -1,17 +1,19 @@
-name: Train and Upload to Hugging Face
+name: CI/CD ML Pipeline
 
 on:
   push:
-    branches: [main, master]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
-  train-and-upload:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -22,10 +24,21 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Train model
-        run: python train.py
+      - name: Check for changes in training_data.csv
+        id: check_changes
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'training_data.csv'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Upload to Hugging Face Hub
+      - name: Train model
+        if: steps.check_changes.outputs.changed == 'true'
+        run: python train_model.py
+
+      - name: Upload model to Hugging Face
+        if: steps.check_changes.outputs.changed == 'true'
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
@@ -34,21 +47,19 @@ jobs:
           from huggingface_hub import HfApi
 
           token = os.environ["HF_TOKEN"]
-          repo_id = "YOUR_HF_REPO"
+          repo_id = "azeno776/mon-modele"
+
           api = HfApi()
 
-          # Create repo if it doesn't exist
           api.create_repo(repo_id, token=token, exist_ok=True)
 
-          # Upload all model artifacts
-          for filename in [FILES_TO_UPLOAD_TO_HF]:
+          for filename in ["linear_model.pkl"]:
               api.upload_file(
                   path_or_fileobj=filename,
                   path_in_repo=filename,
                   repo_id=repo_id,
                   token=token,
               )
-              print(f"Uploaded {filename}")
 
           print(f"Model uploaded to https://huggingface.co/{repo_id}")
           EOF
